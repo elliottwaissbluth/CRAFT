@@ -117,7 +117,8 @@ def trainIters(voc, pairs, encoder, context_encoder, decoder,
 
     # Training loop
     print("Training...")
-    for iteration in range(start_iteration, n_iteration + 1):
+    # for iteration in range(start_iteration, n_iteration + 1):
+    for iteration in range(start_iteration, start_iteration + 1):
         training_batch, training_dialogs, _, true_batch_size = next(batch_iterator)
         # Extract fields from batch
         input_variable, dialog_lengths, utt_lengths, batch_indices, dialog_indices, labels, _, target_variable, mask, max_target_len = training_batch

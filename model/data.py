@@ -225,6 +225,7 @@ def batchIterator(voc, source_data, batch_size, shuffle=True):
             if shuffle:
                 random.shuffle(source_data)
         batch = source_data[cur_idx:(cur_idx+batch_size)]
+
         # the true batch size may be smaller than the given batch size if there is not enough data left
         true_batch_size = len(batch)
         # ensure that the dialogs in this batch are sorted by length, as expected by the padding module
@@ -232,7 +233,17 @@ def batchIterator(voc, source_data, batch_size, shuffle=True):
         # for analysis purposes, get the source dialogs and labels associated with this batch
         batch_dialogs = [x[0] for x in batch]
         batch_labels = [x[2] for x in batch]
+
+# ---------------------------------------------------------------------------- #
+#                                     TODO                                     #
+# ---------------------------------------------------------------------------- #
+
+        batch_C_b_a = [x[4] for x in batch]
+        batch_C_a_b = [x[5] for x in batch]
+        batch_LSM = [x[6] for x in batch]
+
         # convert batch to tensors
         batch_tensors = batch2TrainData(voc, batch, already_sorted=True)
-        yield (batch_tensors, batch_dialogs, batch_labels, true_batch_size) 
+        yield (batch_tensors, batch_dialogs, batch_labels, true_batch_size,
+        batch_C_b_a, batch_C_a_b, batch_LSM) 
         cur_idx += batch_size

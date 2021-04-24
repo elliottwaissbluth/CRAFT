@@ -175,30 +175,37 @@ class SingleTargetClf(nn.Module):
     def __init__(self, hidden_size, dropout=0.1):
         super(SingleTargetClf, self).__init__()
         
-        self.hidden_size = hidden_size
+        # Add 3 for LSA things
+        self.hidden_size = hidden_size + 3
         
         # initialize classifier
-        self.layer1 = nn.Linear(hidden_size, hidden_size)
+        self.layer1 = nn.Linear(self.hidden_size, self.hidden_size)
         self.layer1_act = nn.LeakyReLU()
-        self.layer2 = nn.Linear(hidden_size, hidden_size // 2)
+        self.layer2 = nn.Linear(self.hidden_size, hidden_size // 2)
         self.layer2_act = nn.LeakyReLU()
         self.clf = nn.Linear(hidden_size // 2, 1)
         self.dropout = nn.Dropout(p=dropout)
         
-    def forward(self, encoder_outputs, encoder_input_lengths):
+    def forward(self, encoder_outputs, encoder_input_lengths, C_b_a, C_a_b, LSM):
         # from stackoverflow (https://stackoverflow.com/questions/50856936/taking-the-last-state-from-bilstm-bigru-in-pytorch)
         # First we unsqueeze seqlengths two times so it has the same number of
         # of dimensions as output_forward
         # (batch_size) -> (1, batch_size, 1)
+        C_b_a = torch.tensor(C_b_a).unsqueeze(1).to('cuda:0')
+        C_a_b = torch.tensor(C_a_b).unsqueeze(1).to('cuda:0')
+        LSM = torch.tensor(LSM).unsqueeze(1).to('cuda:0')
+
         lengths = encoder_input_lengths.unsqueeze(0).unsqueeze(2)
         # Then we expand it accordingly
         # (1, batch_size, 1) -> (1, batch_size, hidden_size) 
         lengths = lengths.expand((1, -1, encoder_outputs.size(2)))
-
         # take only the last state of the encoder for each batch
         last_outputs = torch.gather(encoder_outputs, 0, lengths-1).squeeze()
+
+        LSA_last_outputs = torch.cat((last_outputs, C_b_a, C_a_b, LSM), dim=1)
+
         # forward pass through hidden layers
-        layer1_out = self.layer1_act(self.layer1(self.dropout(last_outputs)))
+        layer1_out = self.layer1_act(self.layer1(self.dropout(LSA_last_outputs)))
         layer2_out = self.layer2_act(self.layer2(self.dropout(layer1_out)))
         # compute and return logits
         logits = self.clf(self.dropout(layer2_out)).squeeze()
